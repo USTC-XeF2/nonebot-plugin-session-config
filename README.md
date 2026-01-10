@@ -15,92 +15,57 @@
 
 ## 📖 介绍
 
-这里是插件的详细介绍部分
+本插件为每个会话（群聊、私聊等场景）提供了独立的持久化配置存储功能。
 
 ## 💿 安装
 
-<details open>
-<summary>使用 nb-cli 安装</summary>
-在 nonebot2 项目的根目录下打开命令行, 输入以下指令即可安装
+### 使用 nb-cli 安装
 
     nb plugin install nonebot-plugin-session-config --upgrade
-使用 **pypi** 源安装
 
-    nb plugin install nonebot-plugin-session-config --upgrade -i "https://pypi.org/simple"
-使用**清华源**安装
-
-    nb plugin install nonebot-plugin-session-config --upgrade -i "https://pypi.tuna.tsinghua.edu.cn/simple"
-
-
-</details>
-
-<details>
-<summary>使用包管理器安装</summary>
-在 nonebot2 项目的插件目录下, 打开命令行, 根据你使用的包管理器, 输入相应的安装命令
-
-<details open>
-<summary>uv</summary>
+### 使用 uv 安装
 
     uv add nonebot-plugin-session-config
+
 安装仓库 master 分支
 
     uv add git+https://github.com/USTC-XeF2/nonebot-plugin-session-config@master
-</details>
-
-<details>
-<summary>pdm</summary>
-
-    pdm add nonebot-plugin-session-config
-安装仓库 master 分支
-
-    pdm add git+https://github.com/USTC-XeF2/nonebot-plugin-session-config@master
-</details>
-<details>
-<summary>poetry</summary>
-
-    poetry add nonebot-plugin-session-config
-安装仓库 master 分支
-
-    poetry add git+https://github.com/USTC-XeF2/nonebot-plugin-session-config@master
-</details>
 
 打开 nonebot2 项目根目录下的 `pyproject.toml` 文件, 在 `[tool.nonebot]` 部分追加写入
 
     plugins = ["nonebot_plugin_session_config"]
 
-</details>
-
-<details>
-<summary>使用 nbr 安装(使用 uv 管理依赖可用)</summary>
-
-[nbr](https://github.com/fllesser/nbr) 是一个基于 uv 的 nb-cli，可以方便地管理 nonebot2
-
-    nbr plugin install nonebot-plugin-session-config
-使用 **pypi** 源安装
-
-    nbr plugin install nonebot-plugin-session-config -i "https://pypi.org/simple"
-使用**清华源**安装
-
-    nbr plugin install nonebot-plugin-session-config -i "https://pypi.tuna.tsinghua.edu.cn/simple"
-
-</details>
-
-
 ## ⚙️ 配置
 
-在 nonebot2 项目的`.env`文件中添加下表中的必填配置
+所有配置项均需以 `SESSION_CONFIG_` 为前缀（下文省略），且均为选填项。
 
-| 配置项  | 必填  | 默认值 |   说明   |
-| :-----: | :---: | :----: | :------: |
-| 配置项1 |  是   |   无   | 配置说明 |
-| 配置项2 |  否   |   无   | 配置说明 |
+| 配置项 | 默认值 | 说明 |
+| :---: | :---: | :-: |
+| BASE_DIR | None | 配置存储的根目录，值为 None 时使用 `localstore` 提供的配置文件目录，**一般不需要更改** |
+| DIR_FORMAT | bot-{bot_id} | 各机器人所属目录的命名格式，不使用 `bot_id` 模板参数时所有机器人共用同一目录 |
+| FILE_FORMAT | {scene_type}-{scene_id}.yaml | 配置文件的命名格式 |
+| USE_GLOBAL | False | 是否尝试使用全局配置作为默认值，**开启此项时请确保会话配置与全局配置间没有意料外的重复键** |
 
 ## 🎉 使用
-### 指令表
-| 指令  | 权限  | 需要@ | 范围  |   说明   |
-| :---: | :---: | :---: | :---: | :------: |
-| 指令1 | 主人  |  否   | 私聊  | 指令说明 |
-| 指令2 | 群员  |  是   | 群聊  | 指令说明 |
 
-### 🎨 效果图
-如果有效果图的话
+    from nonebot import on_command, on_message
+    from pydantic import BaseModel
+
+    from nonebot_plugin_session_config import SessConfig, check_enabled
+
+
+    class SessionConfig(BaseModel):
+        test_enabled: bool = False
+        test_key: int = 0
+
+
+    message_handler = on_message(
+        rule=check_enabled(SessionConfig, "test_enabled"),
+    )
+
+
+    @message_handler.handle()
+    async def _(session_config: SessConfig[SessionConfig]):
+        await message_handler.finish(f"Test key value is: {session_config.test_key}")
+
+本插件提供的配置不提供在程序中动态修改的接口，若需要修改请手动或自动编辑对应的文件，无需重启即可更新。

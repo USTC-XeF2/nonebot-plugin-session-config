@@ -3,12 +3,11 @@ from pydantic import BaseModel
 
 
 class Config(BaseModel):
-    pass
+    session_config_base_dir: str | None = None
+    session_config_dir_format: str = "bot-{bot_id}"
+    session_config_file_format: str = "{scene_type}-{scene_id}.yaml"
+    session_config_use_global: bool = False
 
 
-# 配置加载
-plugin_config: Config = get_plugin_config(Config)
+plugin_config = get_plugin_config(Config)
 global_config = get_driver().config
-
-# 全局名称
-NICKNAME: str = next(iter(global_config.nickname), "")
