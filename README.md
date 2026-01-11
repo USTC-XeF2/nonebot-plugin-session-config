@@ -21,23 +21,31 @@
 
 ### 使用 nb-cli 安装
 
-    nb plugin install nonebot-plugin-session-config --upgrade
+```shell
+nb plugin install nonebot-plugin-session-config --upgrade
+```
 
 ### 使用 uv 安装
 
-    uv add nonebot-plugin-session-config
+```shell
+uv add nonebot-plugin-session-config
+```
 
 安装仓库 master 分支
 
-    uv add git+https://github.com/USTC-XeF2/nonebot-plugin-session-config@master
+```shell
+uv add git+https://github.com/USTC-XeF2/nonebot-plugin-session-config@master
+```
 
-打开 nonebot2 项目根目录下的 `pyproject.toml` 文件, 在 `[tool.nonebot]` 部分追加写入
+打开 nonebot2 项目根目录下的 `pyproject.toml` 文件, 在 `[tool.nonebot.plugins]` 部分追加写入
 
-    plugins = ["nonebot_plugin_session_config"]
+```toml
+"@local" = ["nonebot_plugin_session_config"]
+```
 
 ## ⚙️ 配置
 
-所有配置项均需以 `SESSION_CONFIG_` 为前缀（下文省略），且均为选填项。
+所有配置项均以 `SESSION_CONFIG_` 为前缀（下文省略），且均为选填项。
 
 | 配置项 | 默认值 | 说明 |
 | :---: | :---: | :-: |
@@ -45,27 +53,40 @@
 | DIR_FORMAT | bot-{bot_id} | 各机器人所属目录的命名格式，不使用 `bot_id` 模板参数时所有机器人共用同一目录 |
 | FILE_FORMAT | {scene_type}-{scene_id}.yaml | 配置文件的命名格式 |
 | USE_GLOBAL | False | 是否尝试使用全局配置作为默认值，**开启此项时请确保会话配置与全局配置间没有意料外的重复键** |
+| ENABLE_PARAM | False | 是否启用会话配置参数注入功能，启用后可直接指定会话配置类作为消息处理函数参数类型，**在插件冲突时可能会注入失败** |
 
 ## 🎉 使用
 
-    from nonebot import on_command, on_message
-    from pydantic import BaseModel
+```python
+from nonebot import on_message
 
-    from nonebot_plugin_session_config import SessConfig, check_enabled
-
-
-    class SessionConfig(BaseModel):
-        test_enabled: bool = False
-        test_key: int = 0
-
-
-    message_handler = on_message(
-        rule=check_enabled(SessionConfig, "test_enabled"),
-    )
+from nonebot_plugin_session_config import (
+    BaseSessionConfig,
+    check_enabled,
+    get_session_config,
+)
 
 
-    @message_handler.handle()
-    async def _(session_config: SessConfig[SessionConfig]):
-        await message_handler.finish(f"Test key value is: {session_config.test_key}")
+# 所有会话配置类均应继承自 BaseSessionConfig
+class SessionConfig(BaseSessionConfig):
+    test_enabled: bool = False
+    test_key: int = 0
+
+
+message_handler = on_message(
+    rule=check_enabled(SessionConfig, "test_enabled"),
+)
+
+
+@message_handler.handle()
+async def _(session_config: SessionConfig = get_session_config(SessionConfig)):
+    await message_handler.finish(f"Test key value is: {session_config.test_key}")
+
+
+# 使用自动参数注入（需在配置中启用 ENABLE_PARAM 选项）
+@message_handler.handle()
+async def _(session_config: SessionConfig):
+    await message_handler.finish(f"Test key value is: {session_config.test_key}")
+```
 
 本插件提供的配置不提供在程序中动态修改的接口，若需要修改请手动或自动编辑对应的文件，无需重启即可更新。

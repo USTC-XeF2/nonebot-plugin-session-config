@@ -7,6 +7,7 @@ class Config(BaseModel):
     session_config_dir_format: str = "bot-{bot_id}"
     session_config_file_format: str = "{scene_type}-{scene_id}.yaml"
     session_config_use_global: bool = False
+    session_config_enable_param: bool = False
 
 
 plugin_config = get_plugin_config(Config)

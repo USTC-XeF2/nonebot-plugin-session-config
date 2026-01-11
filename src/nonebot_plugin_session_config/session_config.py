@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, TypeVar, Annotated
+from typing import TypeVar
 from pathlib import Path
 
 import yaml
@@ -9,18 +9,35 @@ from nonebot_plugin_localstore import get_plugin_config_dir
 
 from .config import global_config, plugin_config
 
+
+class BaseSessionConfig(BaseModel):
+    """
+    会话配置基类
+
+    所有会话配置类都应该继承此类，以便使用依赖注入功能。
+    """
+
+    pass
+
+
+C = TypeVar("C", bound=BaseSessionConfig)
+
 PLUGIN_CONFIG_DIR = get_plugin_config_dir()
 
 
-def _get_session_config_dir(bot_id: str):
+def _get_session_config_file(session: Uninfo):
     if plugin_config.session_config_base_dir is None:
         base_dir = PLUGIN_CONFIG_DIR
     else:
         base_dir = Path(plugin_config.session_config_base_dir)
-    return base_dir / plugin_config.session_config_dir_format.format(bot_id=bot_id)
-
-
-C = TypeVar("C", bound=BaseModel)
+    return (
+        base_dir
+        / plugin_config.session_config_dir_format.format(bot_id=session.self_id)
+        / plugin_config.session_config_file_format.format(
+            scene_type=session.scene.type.name.lower(),
+            scene_id=session.scene.id,
+        )
+    )
 
 
 def _load_config(config_path: Path, config_type: type[C]):
@@ -46,41 +63,21 @@ def get_session_config(config_type: type[C]):
 
     用法：
         ```python
-        from nonebot_plugin_session_config import SessConfig, get_session_config
-        from pydantic import BaseModel
+        from nonebot_plugin_session_config import BaseSessionConfig, get_session_config
 
-        class Config(BaseModel):
+        class SessionConfig(BaseSessionConfig):
             some_key: int = 0
 
         message_handler = on_message(...)
 
         @message_handler.handle()
-        async def _(session_config: Config = get_session_config(Config)):
-            ...
-
-        # 也可以写作
-        @message_handler.handle()
-        async def _(session_config: SessConfig[Config]):
+        async def _(session_config: SessionConfig = get_session_config(SessionConfig)):
             ...
         ```
     """
 
     def get_config(session: Uninfo):
-        config_path = _get_session_config_dir(
-            session.self_id
-        ) / plugin_config.session_config_file_format.format(
-            scene_type=session.scene.type.name.lower(),
-            scene_id=session.scene.id,
-        )
+        config_path = _get_session_config_file(session)
         return _load_config(config_path, config_type)
 
     return Depends(get_config)
-
-
-if TYPE_CHECKING:
-    SessConfig = C
-else:
-
-    class SessConfig:
-        def __class_getitem__(cls, model_type: type[C]):
-            return Annotated[model_type, get_session_config(model_type)]

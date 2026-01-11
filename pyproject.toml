@@ -7,9 +7,10 @@ requires-python = ">=3.10"
 authors = [{ name = "XeF2", email = "contact@xef2.top" }]
 dependencies = [
   "httpx>=0.27.0,<1.0.0",
+  "nonebot-adapter-console>=0.9.0",
   "nonebot-plugin-localstore>=0.7.4,<1.0.0",
   "nonebot-plugin-uninfo>=0.10.0,<1.0.0",
-  "nonebot2>=2.4.3,<3.0.0",
+  "nonebot2>=2.4.4,<3.0.0",
 ]
 
 [project.urls]
@@ -62,7 +63,14 @@ exclude_lines = [
 ]
 
 [tool.nonebot]
-plugins = ["nonebot_plugin_session_config"]
+plugin_dirs = []
+builtin_plugins = []
+
+[tool.nonebot.plugins]
+"@local" = ["nonebot_plugin_session_config"]
+
+[tool.nonebot.adapters]
+"@local" = []
 
 [tool.poe.tasks]
 test = "pytest --cov=src --cov-report xml --junitxml=./junit.xml -n auto"
