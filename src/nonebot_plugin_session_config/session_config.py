@@ -5,8 +5,8 @@ import yaml
 from pydantic import BaseModel
 from nonebot.params import Depends
 from nonebot_plugin_uninfo import Uninfo
-from nonebot_plugin_localstore import get_plugin_config_dir
 
+from .file import _get_index, _update_index, _get_session_config_file
 from .config import global_config, plugin_config
 
 
@@ -21,23 +21,6 @@ class BaseSessionConfig(BaseModel):
 
 
 C = TypeVar("C", bound=BaseSessionConfig)
-
-PLUGIN_CONFIG_DIR = get_plugin_config_dir()
-
-
-def _get_session_config_file(session: Uninfo):
-    if plugin_config.session_config_base_dir is None:
-        base_dir = PLUGIN_CONFIG_DIR
-    else:
-        base_dir = Path(plugin_config.session_config_base_dir)
-    return (
-        base_dir
-        / plugin_config.session_config_dir_format.format(bot_id=session.self_id)
-        / plugin_config.session_config_file_format.format(
-            scene_type=session.scene.type.name.lower(),
-            scene_id=session.scene.id,
-        )
-    )
 
 
 def _load_config(config_path: Path, config_type: type[C]):
@@ -76,8 +59,27 @@ def get_session_config(config_type: type[C]):
         ```
     """
 
-    def get_config(session: Uninfo):
+    async def get_config(session: Uninfo):
         config_path = _get_session_config_file(session)
-        return _load_config(config_path, config_type)
+        config = _load_config(config_path, config_type)
+        try:
+            await _update_index(session, config_path)
+        except Exception:
+            pass
+        return config
 
     return Depends(get_config)
+
+
+async def traverse_session_configs(bot_id: str, config_type: type[C]):
+    """
+    遍历指定机器人的所有会话配置。
+
+    返回一个字典，键为 `(scene_type, scene_id)` 元组，值为对应的会话配置实例。
+    """
+    result: dict[tuple[str, str], C] = {}
+    index = await _get_index(bot_id)
+    for (scene_type, scene_id), config_path in index.items():
+        config = _load_config(config_path, config_type)
+        result[(scene_type, scene_id)] = config
+    return result

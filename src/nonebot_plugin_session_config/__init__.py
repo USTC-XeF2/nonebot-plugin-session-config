@@ -6,13 +6,18 @@ require("nonebot_plugin_localstore")
 
 from .rules import check_enabled, check_condition
 from .config import Config, plugin_config
-from .session_config import BaseSessionConfig, get_session_config
+from .session_config import (
+    BaseSessionConfig,
+    get_session_config,
+    traverse_session_configs,
+)
 
 __all__ = [
     "BaseSessionConfig",
     "check_condition",
     "check_enabled",
     "get_session_config",
+    "traverse_session_configs",
 ]
 
 __plugin_meta__ = PluginMetadata(

@@ -7,7 +7,8 @@ from nonebot.adapters import Bot, Event
 from nonebot.dependencies import Param
 from nonebot_plugin_uninfo import get_session
 
-from .session_config import BaseSessionConfig, _load_config, _get_session_config_file
+from .file import _get_session_config_file
+from .session_config import BaseSessionConfig, _load_config
 
 
 class SessionConfigParam(Param):
