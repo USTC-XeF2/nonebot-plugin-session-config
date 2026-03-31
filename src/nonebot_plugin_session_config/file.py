@@ -1,6 +1,6 @@
 import json
-import asyncio
 from pathlib import Path
+from threading import Lock
 from collections import defaultdict
 
 from nonebot_plugin_uninfo import Uninfo
@@ -28,11 +28,11 @@ def _get_session_config_file(session: Uninfo):
     )
 
 
-_index_locks: dict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
+_index_locks: dict[str, Lock] = defaultdict(Lock)
 
 
-async def _update_index(session: Uninfo, config_path: Path):
-    async with _index_locks[session.self_id]:
+def _update_index(session: Uninfo, config_path: Path):
+    with _index_locks[session.self_id]:
         index_file = _get_session_config_dir(session.self_id) / "index.json"
         if not index_file.parent.exists():
             index_file.parent.mkdir(parents=True, exist_ok=True)
@@ -52,8 +52,8 @@ async def _update_index(session: Uninfo, config_path: Path):
             json.dump(data, wf, ensure_ascii=False, indent=2)
 
 
-async def _get_index(bot_id: str) -> dict[tuple[str, str], Path]:
-    async with _index_locks[bot_id]:
+def _get_index(bot_id: str) -> dict[tuple[str, str], Path]:
+    with _index_locks[bot_id]:
         index_file = _get_session_config_dir(bot_id) / "index.json"
         if index_file.exists():
             with index_file.open(encoding="utf-8") as rf:

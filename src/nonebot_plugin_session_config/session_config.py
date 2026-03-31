@@ -59,11 +59,11 @@ def get_session_config(config_type: type[C]):
         ```
     """
 
-    async def get_config(session: Uninfo):
+    def get_config(session: Uninfo):
         config_path = _get_session_config_file(session)
         config = _load_config(config_path, config_type)
         try:
-            await _update_index(session, config_path)
+            _update_index(session, config_path)
         except Exception:
             pass
         return config
@@ -71,14 +71,14 @@ def get_session_config(config_type: type[C]):
     return Depends(get_config)
 
 
-async def traverse_session_configs(bot_id: str, config_type: type[C]):
+def traverse_session_configs(bot_id: str, config_type: type[C]):
     """
     遍历指定机器人的所有会话配置。
 
     返回一个字典，键为 `(scene_type, scene_id)` 元组，值为对应的会话配置实例。
     """
     result: dict[tuple[str, str], C] = {}
-    index = await _get_index(bot_id)
+    index = _get_index(bot_id)
     for (scene_type, scene_id), config_path in index.items():
         config = _load_config(config_path, config_type)
         result[(scene_type, scene_id)] = config
